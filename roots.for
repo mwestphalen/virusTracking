@@ -18,18 +18,18 @@
 
 * Variable Declaration/Initialization
         INTEGER :: numOfTerms
-        REAL :: aTerm, bTerm, cTerm, dTerm = 0.0
-        INTEGER :: aPower, bPower, cPower, dPower = 0.0
-        INTEGER :: tolerance, absError
+        REAL :: tolerance, absError = 100
         REAL :: a = -5
         REAL :: b = 5
-        REAL :: c, cBefore = 0
+        REAL :: c = 0
+        REAL :: cBefore
         REAL :: f_of_a, f_of_b, f_of_c
         REAL :: polynomial
         DIMENSION polynomial(8)
         DATA polynomial/0,0,0,0,0,0,0,0/
 
 * Prompt
+        WRITE(*,*)  
         WRITE(*,*) 'With the help of the false-position method, this'
         WRITE(*,*) 'program attempts to find the roots of a polynomial'
         WRITE(*,*) 'equation (less than order 4) given its terms and'
@@ -49,6 +49,8 @@
       WRITE(*,*)
 
 * Getting polynomial terms
+* Every 2 digits in the array represent the term and its power
+* as gathered fro the user (ex: pol(1)=4,pol(2)=2 => 4x^2)
       CALL setTerm(polynomial(1), polynomial(2))
       IF (numOfTerms == 2) THEN
             CALL setTerm(polynomial(3), polynomial(4))
@@ -77,26 +79,43 @@
 
 * Staring iterations to find root
       DO WHILE(absError > tolerance)
+            cBefore = c
 * Solving for c from secant line equation between f(a) and f(b)
             CALL solve(f_of_a,a,polynomial)
             CALL solve(f_of_b,b,polynomial)
+
+            WRITE(*,*) 'f(a) = ',f_of_a
+            WRITE(*,*) 'f(b) = ',f_of_b
+
 * If f(a) * f(b) >= 0, then it means there's zero or multiple roots
 * present, and the false-position method won't be helpful...
             IF (f_of_a * f_of_b >= 0) THEN
                   WRITE(*,*) 'The polynomial has 0 or multiple roots'
-                  WRITE(*,*) '
+                  WRITE(*,*) 'therefore, the false-position method'
+                  WRITE(*,*) 'will not be helpful.'
+                  STOP
             c = ((a*f_of_b)-(b*f_of_a)) / (f_of_b - f_of_a)
+            WRITE(*,*) 'C is: ', c
+            ENDIF
 
 * Defining whether the root is to the left or to the right of c
             CALL solve(f_of_c,c,polynomial)
             IF (f_of_c == 0) THEN
-*                 FOUND THE ROOT
+                 WRITE(*,*) 'The root is: ', c
+                 STOP
             ELSE IF (f_of_a * f_of_c < 0) THEN
                   b = c
+                  absError = ABS((c - cBefore) / c)
             ELSE IF (f_of_b * f_of_c < 0) THEN
                   a = c
+                  absError = ABS((c - cBefore) / c)
             ENDIF
       ENDDO
+
+      WRITE(*,*)
+      WRITE(*,*)'The root of the given function (within the tolerance)'
+      WRITE(*,*) 'is: ', c
+      WRITE(*,*) 
 
       STOP
       END
@@ -116,7 +135,7 @@
 3       WRITE(*,13)
 13      FORMAT('Enter power: ', $)
         READ(*,*,iostat=ierror) power
-        IF (ierror .NE. 0 .OR. power > 4 .OR. power < 1) THEN
+        IF (ierror .NE. 0 .OR. power > 4 .OR. power < 0) THEN
             WRITE(*,*) 'Error: Wrong input type. Try again.'
             WRITE(*,*)
             GO TO 3
@@ -128,11 +147,12 @@
 * This subroutine solves for f(x) given x and the terms and
 * powers of the polynomial
       SUBROUTINE solve(f_of_x,x,polynomial)
-      REAL f_of_x, x
-      REAL :: polynomial
-      DIMENSION polynomial(8)
+            REAL :: f_of_x, x
+            REAL :: polynomial
+            DIMENSION polynomial(8)
 
-      f_of_x = polynomial(1)*(x**polynomial(2)) + polynomial(3)*
-    &  (x**polynomial(4)) + polynomial(5)*(x**polynomial(6)) +
-    & polynomial(7)*(x**polynomial(8))
-     END
+            f_of_x = polynomial(1)*(x**polynomial(2))
+            f_of_x = f_of_x + polynomial(3)*(x**polynomial(4))
+            f_of_x = f_of_x + polynomial(5)*(x**polynomial(6))
+            f_of_x = f_of_x + polynomial(7)*(x**polynomial(8))
+      END
